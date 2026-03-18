@@ -181,7 +181,10 @@ async function selectOption(answerIndex, btn) {
       isCorrect: data.isCorrect,
     });
 
-    showFeedback(data.isCorrect, isFinished);
+    const correctOption = state.currentQuestion.options.find(o => o.id === data.correctOptionId);
+    const correctAnswer = correctOption ? correctOption.description : null;
+
+    showFeedback(data.isCorrect, isFinished, correctAnswer);
   } catch (err) {
     alert('Erro ao enviar resposta. Tente novamente.');
     allBtns.forEach(b => b.disabled = false);
@@ -193,9 +196,13 @@ async function selectOption(answerIndex, btn) {
 }
 
 // Show Feedback
-function showFeedback(isCorrect, isFinished) {
+function showFeedback(isCorrect, isFinished, correctAnswer) {
   const feedbackCard = document.querySelector('.feedback-card');
   feedbackCard.classList.remove('feedback-correct', 'feedback-incorrect');
+
+  // Remove previous correct answer hint if exists
+  const existing = feedbackCard.querySelector('.correct-answer-hint');
+  if (existing) existing.remove();
 
   if (isCorrect) {
     feedbackIcon.textContent = '✅';
@@ -207,6 +214,13 @@ function showFeedback(isCorrect, isFinished) {
     feedbackTitle.textContent = 'Incorreto';
     feedbackMessage.textContent = 'Não foi dessa vez...';
     feedbackCard.classList.add('feedback-incorrect');
+
+    if (correctAnswer) {
+      const hint = document.createElement('div');
+      hint.className = 'correct-answer-hint';
+      hint.innerHTML = `<span class="hint-label">Resposta correta:</span> ${correctAnswer}`;
+      feedbackMessage.insertAdjacentElement('afterend', hint);
+    }
   }
 
   if (isFinished) {
@@ -277,6 +291,13 @@ async function showClassification() {
   }
 }
 
+function formatTime(seconds) {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
 function renderClassification(classification) {
   classificationList.innerHTML = '';
   classification.forEach((entry, index) => {
@@ -289,7 +310,10 @@ function renderClassification(classification) {
     item.innerHTML = `
       <span class="classification-rank">${medal}</span>
       <span class="classification-name">${fullName}</span>
-      <span class="classification-score">${entry.score} pts</span>
+      <div class="classification-stats">
+        <span class="classification-score">${entry.score} pts</span>
+        <span class="classification-time">${formatTime(entry.time_seconds)}</span>
+      </div>
     `;
     classificationList.appendChild(item);
   });
