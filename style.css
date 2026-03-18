@@ -115,6 +115,22 @@ body {
   margin-bottom: 28px;
 }
 
+/* Already Played */
+.already-played {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.already-played-msg {
+  font-size: 15px;
+  color: var(--gray-600);
+  margin-bottom: 16px;
+}
+
+.already-played .btn {
+  width: 100%;
+}
+
 /* Form */
 #form-start {
   display: flex;

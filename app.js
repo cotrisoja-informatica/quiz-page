@@ -38,6 +38,15 @@ const resultMessage = document.getElementById('result-message');
 const btnRestart = document.getElementById('btn-restart');
 const classificationList = document.getElementById('classification-list');
 const answersSummary = document.getElementById('answers-summary');
+const alreadyPlayed = document.getElementById('already-played');
+const btnSeeClassification = document.getElementById('btn-see-classification');
+
+// Check if user already played
+if (localStorage.getItem('quiz_completed')) {
+  formStart.style.display = 'none';
+  alreadyPlayed.style.display = 'block';
+}
+btnSeeClassification.addEventListener('click', () => showClassification());
 
 // Start button validation
 function updateStartButton() {
@@ -232,6 +241,7 @@ function showResult() {
     resultMessage.textContent = 'Que tal conhecer mais sobre a Cotrisoja?';
   }
 
+  localStorage.setItem('quiz_completed', '1');
   renderAnswersSummary();
   showScreen('result');
 }
