@@ -1,12 +1,14 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwUzuIi1bgat09G2wah0Jjve-qzyCvqaOivOXTNzzfqvVO0sjjNheoNVlZFLdQfoLQ5LQ/exec';
+const SUPABASE_URL = 'https://fzsdcdkqwzhxxotvbmtf.supabase.co/functions/v1';
+const SUPABASE_ANON_KEY = 'sb_publishable_Dq9R7EL9Rtb1ReSPKDsnGA_WOlQEvCd';
 
 const state = {
-  sessionId: null,
-  questionIds: [],
+  userId: null,
+  questions: [],
   currentIndex: 0,
   currentQuestion: null,
   score: 0,
   playerName: '',
+  answers: [],
 };
 
 // DOM
@@ -19,6 +21,7 @@ const screens = {
 };
 const loading = document.getElementById('loading');
 const inputName = document.getElementById('input-name');
+const inputSurname = document.getElementById('input-surname');
 const formStart = document.getElementById('form-start');
 const btnStart = document.getElementById('btn-start');
 const progressFill = document.getElementById('progress-fill');
@@ -34,14 +37,23 @@ const scoreTotal = document.getElementById('score-total');
 const resultMessage = document.getElementById('result-message');
 const btnRestart = document.getElementById('btn-restart');
 const classificationList = document.getElementById('classification-list');
+const answersSummary = document.getElementById('answers-summary');
+
+// Start button validation
+function updateStartButton() {
+  const nameOk = inputName.value.trim().length > 0;
+  const surnameOk = inputSurname.value.trim().length > 0;
+  btnStart.disabled = !(nameOk && surnameOk);
+}
+inputName.addEventListener('input', updateStartButton);
+inputSurname.addEventListener('input', updateStartButton);
 
 // Helpers
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
   screens[name].classList.add('active');
-  // Re-trigger animation
   screens[name].style.animation = 'none';
-  screens[name].offsetHeight; // force reflow
+  screens[name].offsetHeight;
   screens[name].style.animation = '';
 }
 
@@ -53,113 +65,116 @@ function hideLoading() {
   loading.classList.remove('active');
 }
 
-async function apiCall(body) {
-  const res = await fetch(API_URL, {
+async function apiPost(endpoint, body) {
+  const res = await fetch(`${SUPABASE_URL}/${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error('Erro na requisição');
+  if (!res.ok) throw new Error(`Erro na requisição: ${res.status}`);
+  return res.json();
+}
+
+async function apiGet(endpoint) {
+  const res = await fetch(`${SUPABASE_URL}/${endpoint}`, {
+    method: 'GET',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  });
+  if (!res.ok) throw new Error(`Erro na requisição: ${res.status}`);
   return res.json();
 }
 
 // Start Quiz
 formStart.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const name = inputName.value.trim();
-  if (!name) return;
+  const firstName = inputName.value.trim();
+  const lastName = inputSurname.value.trim();
+  if (!firstName || !lastName) return;
 
-  state.playerName = name;
+  state.playerName = `${firstName} ${lastName}`;
   btnStart.disabled = true;
   showLoading();
 
   try {
-    const data = await apiCall({
-      action: 'startQuiz',
-      payload: { playerName: name },
-    });
+    const data = await apiPost('startQuiz', { firstName, lastName });
 
-    state.sessionId = data.sessionId;
-    state.questionIds = data.questionIds;
+    state.userId = data.user.id;
+    state.questions = data.questions;
     state.currentIndex = 0;
     state.score = 0;
+    state.answers = [];
 
-    await loadQuestion();
+    renderQuestion(state.questions[0]);
+    showScreen('question');
   } catch (err) {
     alert('Erro ao iniciar o quiz. Tente novamente.');
     console.error(err);
   } finally {
-    btnStart.disabled = false;
+    updateStartButton();
     hideLoading();
   }
 });
 
-// Load Question
-async function loadQuestion() {
-  showLoading();
-  try {
-    const questionId = state.questionIds[state.currentIndex];
-    const data = await apiCall({
-      action: 'getQuestion',
-      payload: { questionId },
-    });
-
-    state.currentQuestion = data;
-    renderQuestion(data);
-    showScreen('question');
-  } catch (err) {
-    alert('Erro ao carregar pergunta. Tente novamente.');
-    console.error(err);
-  } finally {
-    hideLoading();
-  }
-}
-
 // Render Question
 function renderQuestion(q) {
-  const total = state.questionIds.length;
+  const total = state.questions.length;
   const current = state.currentIndex + 1;
 
   questionCounter.textContent = `Pergunta ${current} de ${total}`;
   progressFill.style.width = `${(current / total) * 100}%`;
-  questionText.textContent = q.question;
+  questionText.textContent = q.description;
 
   optionsContainer.innerHTML = '';
   q.options.forEach((opt, index) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.textContent = opt.answer;
+    btn.textContent = opt.description;
     btn.addEventListener('click', () => selectOption(index, btn));
     optionsContainer.appendChild(btn);
   });
+
+  state.currentQuestion = q;
 }
 
 // Select Option
 async function selectOption(answerIndex, btn) {
-  // Disable all buttons
   const allBtns = optionsContainer.querySelectorAll('.option-btn');
   allBtns.forEach(b => b.disabled = true);
   btn.classList.add('selected');
 
+  const selectedAnswerText = state.currentQuestion.options[answerIndex].description;
+  const questionDesc = state.currentQuestion.description;
+  const optionId = state.currentQuestion.options[answerIndex].id;
+  const isFinished = state.currentIndex === state.questions.length - 1;
+
   showLoading();
   try {
-    const data = await apiCall({
-      action: 'postAnswer',
-      payload: {
-        sessionId: state.sessionId,
-        questionId: state.questionIds[state.currentIndex],
-        optionId: state.currentQuestion.options[answerIndex].id,
-      },
+    const data = await apiPost('postAnswer', {
+      userId: state.userId,
+      optionId,
     });
 
     if (data.isCorrect) {
       state.score++;
     }
 
-    showFeedback(data.isCorrect, data.isFinished);
+    state.answers.push({
+      number: state.currentIndex + 1,
+      question: questionDesc,
+      selectedAnswer: selectedAnswerText,
+      isCorrect: data.isCorrect,
+    });
+
+    showFeedback(data.isCorrect, isFinished);
   } catch (err) {
     alert('Erro ao enviar resposta. Tente novamente.');
-    // Re-enable buttons
     allBtns.forEach(b => b.disabled = false);
     btn.classList.remove('selected');
     console.error(err);
@@ -192,7 +207,8 @@ function showFeedback(isCorrect, isFinished) {
     btnNext.textContent = 'Próxima Pergunta';
     btnNext.onclick = () => {
       state.currentIndex++;
-      loadQuestion();
+      renderQuestion(state.questions[state.currentIndex]);
+      showScreen('question');
     };
   }
 
@@ -201,7 +217,7 @@ function showFeedback(isCorrect, isFinished) {
 
 // Show Result
 function showResult() {
-  const total = state.questionIds.length;
+  const total = state.questions.length;
   scoreNumber.textContent = state.score;
   scoreTotal.textContent = `/ ${total}`;
 
@@ -216,14 +232,31 @@ function showResult() {
     resultMessage.textContent = 'Que tal conhecer mais sobre a Cotrisoja?';
   }
 
+  renderAnswersSummary();
   showScreen('result');
+}
+
+function renderAnswersSummary() {
+  answersSummary.innerHTML = '';
+  state.answers.forEach((a) => {
+    const item = document.createElement('div');
+    item.className = 'summary-item ' + (a.isCorrect ? 'summary-correct' : 'summary-incorrect');
+    item.innerHTML = `
+      <span class="summary-icon">${a.isCorrect ? '✅' : '❌'}</span>
+      <div class="summary-content">
+        <span class="summary-question">${a.question}</span>
+        <span class="summary-answer">${a.selectedAnswer}</span>
+      </div>
+    `;
+    answersSummary.appendChild(item);
+  });
 }
 
 // Show Classification
 async function showClassification() {
   showLoading();
   try {
-    const data = await apiCall({ action: 'getClassification' });
+    const data = await apiGet('getClassification');
     renderClassification(data.classification);
     showScreen('classification');
   } catch (err) {
@@ -237,14 +270,15 @@ async function showClassification() {
 function renderClassification(classification) {
   classificationList.innerHTML = '';
   classification.forEach((entry, index) => {
+    const fullName = `${entry.first_name} ${entry.last_name}`;
     const item = document.createElement('div');
-    item.className = 'classification-item' + (entry.playerName === state.playerName ? ' classification-me' : '');
+    item.className = 'classification-item' + (fullName === state.playerName ? ' classification-me' : '');
 
     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
 
     item.innerHTML = `
       <span class="classification-rank">${medal}</span>
-      <span class="classification-name">${entry.playerName}</span>
+      <span class="classification-name">${fullName}</span>
       <span class="classification-score">${entry.score} pts</span>
     `;
     classificationList.appendChild(item);
