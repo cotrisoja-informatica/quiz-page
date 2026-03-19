@@ -22,6 +22,7 @@ const screens = {
 const loading = document.getElementById('loading');
 const inputName = document.getElementById('input-name');
 const inputSurname = document.getElementById('input-surname');
+const inputPhone = document.getElementById('input-phone');
 const formStart = document.getElementById('form-start');
 const btnStart = document.getElementById('btn-start');
 const progressFill = document.getElementById('progress-fill');
@@ -41,8 +42,12 @@ const answersSummary = document.getElementById('answers-summary');
 const alreadyPlayed = document.getElementById('already-played');
 const btnSeeClassification = document.getElementById('btn-see-classification');
 
+// Kiosk mode bypass
+const urlParams = new URLSearchParams(window.location.search);
+const isKiosk = urlParams.get('kiosk') === 'true';
+
 // Check if user already played
-if (localStorage.getItem('quiz_completed')) {
+if (localStorage.getItem('quiz_completed') && !isKiosk) {
   formStart.style.display = 'none';
   alreadyPlayed.style.display = 'block';
 }
@@ -52,10 +57,23 @@ btnSeeClassification.addEventListener('click', () => showClassification());
 function updateStartButton() {
   const nameOk = inputName.value.trim().length > 0;
   const surnameOk = inputSurname.value.trim().length > 0;
-  btnStart.disabled = !(nameOk && surnameOk);
+  const phoneOk = inputPhone.value.trim().length > 0;
+  btnStart.disabled = !(nameOk && surnameOk && phoneOk);
 }
 inputName.addEventListener('input', updateStartButton);
 inputSurname.addEventListener('input', updateStartButton);
+inputPhone.addEventListener('input', (e) => {
+  let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 6) {
+    v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+  } else if (v.length > 2) {
+    v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+  } else if (v.length > 0) {
+    v = `(${v}`;
+  }
+  e.target.value = v;
+  updateStartButton();
+});
 
 // Helpers
 function showScreen(name) {
@@ -88,8 +106,10 @@ async function apiPost(endpoint, body) {
   return res.json();
 }
 
-async function apiGet(endpoint) {
-  const res = await fetch(`${SUPABASE_URL}/${endpoint}`, {
+async function apiGet(endpoint, params = {}) {
+  const url = new URL(`${SUPABASE_URL}/${endpoint}`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url, {
     method: 'GET',
     headers: {
       'apikey': SUPABASE_ANON_KEY,
@@ -105,14 +125,15 @@ formStart.addEventListener('submit', async (e) => {
   e.preventDefault();
   const firstName = inputName.value.trim();
   const lastName = inputSurname.value.trim();
-  if (!firstName || !lastName) return;
+  const phone = inputPhone.value.trim();
+  if (!firstName || !lastName || !phone) return;
 
   state.playerName = `${firstName} ${lastName}`;
   btnStart.disabled = true;
   showLoading();
 
   try {
-    const data = await apiPost('startQuiz', { firstName, lastName });
+    const data = await apiPost('startQuiz', { firstName, lastName, phone });
 
     state.userId = data.user.id;
     state.questions = data.questions;
@@ -255,7 +276,9 @@ function showResult() {
     resultMessage.textContent = 'Que tal conhecer mais sobre a Cotrisoja?';
   }
 
-  localStorage.setItem('quiz_completed', '1');
+  if (!isKiosk) {
+    localStorage.setItem('quiz_completed', '1');
+  }
   renderAnswersSummary();
   showScreen('result');
 }

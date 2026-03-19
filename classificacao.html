@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classificação - Quiz Cotrisoja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --green-dark: #1a5e1f;
+      --green: #2e8b34;
+      --green-light: #4caf50;
+      --green-bg: #e8f5e9;
+      --white: #ffffff;
+      --gray-50: #f8f9fa;
+      --gray-200: #e9ecef;
+      --gray-400: #ced4da;
+      --gray-600: #868e96;
+      --gray-800: #343a40;
+      --gray-900: #212529;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #1a5e1f 0%, #2e8b34 50%, #4caf50 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 32px;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    .tv-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-shrink: 0;
+    }
+
+    .tv-logo {
+      width: 80px;
+      height: auto;
+    }
+
+    .tv-header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--white);
+    }
+
+    .tv-columns {
+      column-count: 2;
+      column-gap: 16px;
+      column-fill: balance;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .tv-item {
+      break-inside: avoid;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      margin-bottom: 8px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      font-size: 15px;
+    }
+
+    .tv-item-top {
+      background: var(--white);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .tv-rank {
+      font-size: 20px;
+      font-weight: 700;
+      min-width: 36px;
+      color: var(--gray-800);
+    }
+
+    .tv-name {
+      flex: 1;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+
+    .tv-score {
+      font-weight: 700;
+      color: var(--green-dark);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .tv-time {
+      font-size: 13px;
+      color: var(--gray-600);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .tv-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 12px;
+      flex-shrink: 0;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+    }
+
+    @media (min-width: 1600px) {
+      .tv-columns {
+        column-count: 3;
+      }
+
+      .tv-item {
+        padding: 12px 20px;
+        font-size: 16px;
+      }
+
+      .tv-rank {
+        font-size: 22px;
+      }
+
+      .tv-header h1 {
+        font-size: 32px;
+      }
+    }
+
+    @media (min-width: 2200px) {
+      .tv-columns {
+        column-count: 4;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="tv-header">
+    <img src="assets/2.png" class="tv-logo" alt="Logo Cotrisoja">
+    <h1>Classificação Quiz Cotrisoja</h1>
+  </div>
+
+  <div class="tv-columns" id="tv-columns"></div>
+
+  <div class="tv-footer">
+    <span id="total-participants"></span>
+    <span id="last-update"></span>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://fzsdcdkqwzhxxotvbmtf.supabase.co/functions/v1';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6c2RjZGtxd3poeHhvdHZibXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDE4NDIsImV4cCI6MjA4OTQxNzg0Mn0.rkEg8ETfSneASpWPoqgG8XtTcCCiIC-irDOURKpoWuk';
+    const REFRESH_INTERVAL = 30000;
+
+    async function fetchClassification() {
+      const url = new URL(`${SUPABASE_URL}/getClassification`);
+      url.searchParams.set('page', '1');
+      url.searchParams.set('pageSize', '999');
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Erro: ${res.status}`);
+      return res.json();
+    }
+
+    function formatTime(seconds) {
+      if (seconds < 60) return `${seconds}s`;
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    }
+
+    function renderClassification(data) {
+      const container = document.getElementById('tv-columns');
+      container.innerHTML = '';
+
+      data.classification.forEach((entry, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        const fullName = `${entry.first_name} ${entry.last_name}`;
+
+        const item = document.createElement('div');
+        item.className = 'tv-item' + (index < 3 ? ' tv-item-top' : '');
+        item.innerHTML = `
+          <span class="tv-rank">${medal}</span>
+          <span class="tv-name">${fullName}</span>
+          <span class="tv-score">${entry.score} pts</span>
+          <span class="tv-time">${formatTime(entry.time_seconds)}</span>
+        `;
+        container.appendChild(item);
+      });
+
+      document.getElementById('total-participants').textContent =
+        `${data.pagination.totalUsers} participantes`;
+      document.getElementById('last-update').textContent =
+        `Atualizado: ${new Date().toLocaleTimeString('pt-BR')}`;
+    }
+
+    async function refresh() {
+      try {
+        const data = await fetchClassification();
+        renderClassification(data);
+      } catch (err) {
+        console.error('Erro ao atualizar classificação:', err);
+      }
+    }
+
+    refresh();
+    setInterval(refresh, REFRESH_INTERVAL);
+  </script>
+</body>
+</html>

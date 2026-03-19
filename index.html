@@ -18,6 +18,7 @@
         <h1>Quiz<br><span>Cotrisoja</span></h1>
       </div>
       <p class="subtitle">Teste seus conhecimentos sobre a Cotrisoja!</p>
+      <p class="disclaimer">O tempo de resposta é apenas critério de desempate.</p>
       <div id="already-played" class="already-played" style="display:none">
         <p class="already-played-msg">Você já participou do quiz!</p>
         <button class="btn btn-primary" id="btn-see-classification">Ver Classificação</button>
@@ -39,6 +40,14 @@
           autocomplete="off"
           maxlength="60"
         >
+        <input
+          type="tel"
+          id="input-phone"
+          placeholder="Digite seu telefone"
+          required
+          autocomplete="tel"
+          maxlength="20"
+        >
         <button type="submit" class="btn btn-primary" id="btn-start" disabled>
           Começar Quiz
         </button>
@@ -53,7 +62,7 @@
         <div class="progress-fill" id="progress-fill"></div>
       </div>
       <div class="question-header">
-        <span class="question-counter" id="question-counter">Pergunta 1 de 5</span>
+        <span class="question-counter" id="question-counter">Pergunta 1 de 10</span>
       </div>
       <h2 class="question-text" id="question-text"></h2>
       <div class="options" id="options-container"></div>
