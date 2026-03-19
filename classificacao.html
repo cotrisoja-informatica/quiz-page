@@ -41,11 +41,18 @@
 
     .tv-header {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 4px;
       margin-bottom: 24px;
       flex-shrink: 0;
+    }
+
+    .tv-header-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
     .tv-logo {
@@ -59,11 +66,25 @@
       color: var(--white);
     }
 
+    .tv-subtitle {
+      font-size: 16px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .tv-container {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      overflow: hidden;
+    }
+
     .tv-columns {
-      column-count: 2;
+      column-count: 3;
       column-gap: 16px;
       column-fill: balance;
-      flex: 1;
+      height: 100%;
       overflow: hidden;
     }
 
@@ -123,10 +144,6 @@
     }
 
     @media (min-width: 1600px) {
-      .tv-columns {
-        column-count: 3;
-      }
-
       .tv-item {
         padding: 12px 20px;
         font-size: 16px;
@@ -140,24 +157,22 @@
         font-size: 32px;
       }
     }
-
-    @media (min-width: 2200px) {
-      .tv-columns {
-        column-count: 4;
-      }
-    }
   </style>
 </head>
 <body>
   <div class="tv-header">
-    <img src="assets/2.png" class="tv-logo" alt="Logo Cotrisoja">
-    <h1>Classificação Quiz Cotrisoja</h1>
+    <div class="tv-header-top">
+      <img src="assets/2.png" class="tv-logo" alt="Logo Cotrisoja">
+      <h1>Classificação Quiz Cotrisoja</h1>
+    </div>
+    <span class="tv-subtitle" id="total-participants"></span>
   </div>
 
-  <div class="tv-columns" id="tv-columns"></div>
+  <div class="tv-container">
+    <div class="tv-columns" id="tv-columns"></div>
+  </div>
 
   <div class="tv-footer">
-    <span id="total-participants"></span>
     <span id="last-update"></span>
   </div>
 
