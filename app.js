@@ -57,7 +57,8 @@ btnSeeClassification.addEventListener('click', () => showClassification());
 function updateStartButton() {
   const nameOk = inputName.value.trim().length > 0;
   const surnameOk = inputSurname.value.trim().length > 0;
-  const phoneOk = inputPhone.value.trim().length > 0;
+  const phoneDigits = inputPhone.value.replace(/\D/g, '');
+  const phoneOk = phoneDigits.length >= 10;
   btnStart.disabled = !(nameOk && surnameOk && phoneOk);
 }
 inputName.addEventListener('input', updateStartButton);

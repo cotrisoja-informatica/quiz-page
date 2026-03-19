@@ -81,20 +81,18 @@
     }
 
     .tv-columns {
-      column-count: 3;
-      column-gap: 16px;
-      column-fill: balance;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px 16px;
       height: 100%;
       overflow: hidden;
     }
 
     .tv-item {
-      break-inside: avoid;
       display: flex;
       align-items: center;
       gap: 12px;
       padding: 10px 16px;
-      margin-bottom: 8px;
       background: rgba(255, 255, 255, 0.95);
       border-radius: 10px;
       font-size: 15px;
