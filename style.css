@@ -270,9 +270,11 @@ input[type="tel"]::placeholder {
   -webkit-tap-highlight-color: transparent;
 }
 
-.option-btn:hover {
-  border-color: var(--green);
-  background: var(--green-bg);
+@media (hover: hover) {
+  .option-btn:hover {
+    border-color: var(--green);
+    background: var(--green-bg);
+  }
 }
 
 .option-btn:active {
