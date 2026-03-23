@@ -36,7 +36,7 @@
       flex-direction: column;
       padding: 24px 32px;
       -webkit-font-smoothing: antialiased;
-      overflow: hidden;
+      overflow: auto;
     }
 
     .tv-header {
@@ -77,15 +77,13 @@
       background: rgba(255, 255, 255, 0.15);
       border-radius: 16px;
       padding: 20px;
-      overflow: hidden;
+      overflow: auto;
     }
 
     .tv-columns {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px 16px;
-      height: 100%;
-      overflow: hidden;
     }
 
     .tv-item {
@@ -141,6 +139,23 @@
       font-size: 13px;
     }
 
+    .btn-export {
+      padding: 8px 20px;
+      background: var(--white);
+      color: var(--green-dark);
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-export:hover {
+      opacity: 0.85;
+    }
+
     @media (min-width: 1600px) {
       .tv-item {
         padding: 12px 20px;
@@ -172,6 +187,7 @@
 
   <div class="tv-footer">
     <span id="last-update"></span>
+    <button class="btn-export" id="btn-export" onclick="exportCSV()">Exportar CSV</button>
   </div>
 
   <script>
@@ -226,9 +242,39 @@
         `Atualizado: ${new Date().toLocaleTimeString('pt-BR')}`;
     }
 
+    let lastData = null;
+
+    function exportCSV() {
+      if (!lastData || !lastData.classification.length) {
+        alert('Nenhum dado para exportar.');
+        return;
+      }
+
+      const rows = [['Posição', 'Nome', 'Sobrenome', 'Pontuação', 'Tempo (s)']];
+      lastData.classification.forEach((entry, index) => {
+        rows.push([
+          index + 1,
+          `"${entry.first_name}"`,
+          `"${entry.last_name}"`,
+          entry.score,
+          entry.time_seconds,
+        ]);
+      });
+
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `classificacao_quiz_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
     async function refresh() {
       try {
         const data = await fetchClassification();
+        lastData = data;
         renderClassification(data);
       } catch (err) {
         console.error('Erro ao atualizar classificação:', err);
